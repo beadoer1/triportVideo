@@ -1,0 +1,44 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+}
+
+group = 'com.project'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'mysql:mysql-connector-java'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // io configuration 을 위한 설정정보
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    // AWS S3
+    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.1010')
+    implementation 'com.amazonaws:aws-java-sdk-s3'
+
+    // FFmpeg wrapper (컴퓨터에 다운로드 후에 java 프로그램과 연결해주는 라이브러리)
+    // https://mvnrepository.com/artifact/net.bramp.ffmpeg/ffmpeg
+    implementation group: 'net.bramp.ffmpeg', name: 'ffmpeg', version: '0.6.2'
+}
+
+test {
+    useJUnitPlatform()
+}
