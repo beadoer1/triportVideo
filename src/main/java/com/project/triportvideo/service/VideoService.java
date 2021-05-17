@@ -23,33 +23,52 @@ public class VideoService {
     @Value("${origin.ipAddress}")
     private String originServerIpAddress;
 
-    private static final Queue<VideoUrlDto> wailtingQueue = new LinkedList<>();
+
+    private static Queue<VideoUrlDto> imposPlayQueue = new LinkedList<>();
+    private static Queue<VideoUrlDto> posPlayQueue = new LinkedList<>();
 
     @Async // 비동기 동작을 위해 추가(application 파일에 '@EnableAsync'도 추가해줘야 한다.)
-    public void encodeVideo(VideoUrlDto videoUrlDto) throws IOException, InterruptedException {
-        if(!wailtingQueue.isEmpty()){
-            wailtingQueue.offer(videoUrlDto);
+    public void encodeVideo(VideoUrlDto videoUrlDto) throws IOException {
+        if(!imposPlayQueue.isEmpty() || !posPlayQueue.isEmpty()){
+            addQueue(videoUrlDto);
             return;
         }
-        wailtingQueue.offer(videoUrlDto);
-        while(wailtingQueue.size() > 0) {
-            try {
-                VideoUrlDto originVideoUrlDto = wailtingQueue.peek(); // peek() : queue에서 삭제 없이 값만 확인
-                String originVideoUrl =  originVideoUrlDto.getVideoUrl();
-                Long originPostId = originVideoUrlDto.getPostId();
+        addQueue(videoUrlDto);
 
-                String filename = s3Utils.getVideo(originVideoUrl);
-                String encodedDirectory = videoUtils.encodingVideo(filename);
-                String videoUrl = s3Utils.uploadFolder(encodedDirectory);
-
-                updateUrl(new VideoUrlDto(originPostId,videoUrl));
-            }catch (Exception e){
-                System.out.println(e.getMessage());
-
-            }finally{
-                videoUtils.cleanStorage();
-                wailtingQueue.poll(); // poll() : queue에서 꺼냄(pop()과 동일)
+        while(imposPlayQueue.size() > 0 || posPlayQueue.size() > 0) {
+            if(imposPlayQueue.size() > 0){
+                encoding(imposPlayQueue);
+            } else{
+                encoding(posPlayQueue);
             }
+        }
+    }
+
+    public void addQueue(VideoUrlDto videoUrlDto){
+        if(!videoUrlDto.getPosPlay()){
+            imposPlayQueue.offer(videoUrlDto);
+        }else{
+            posPlayQueue.offer(videoUrlDto);
+        }
+    }
+
+    public void encoding(Queue<VideoUrlDto> waitingQueue) throws IOException {
+        try {
+            VideoUrlDto originVideoUrlDto = waitingQueue.peek(); // peek() : queue에서 삭제 없이 값만 확인
+            String originVideoUrl =  originVideoUrlDto.getVideoUrl();
+            Long originPostId = originVideoUrlDto.getPostId();
+
+            String filename = s3Utils.getVideo(originVideoUrl);
+            String encodedDirectory = videoUtils.encodingVideo(filename);
+            String videoUrl = s3Utils.uploadFolder(encodedDirectory);
+
+            updateUrl(new VideoUrlDto(originPostId,videoUrl));
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+
+        }finally{
+            videoUtils.cleanStorage();
+            waitingQueue.poll(); // poll() : queue에서 꺼냄(pop()과 동일)
         }
     }
 
