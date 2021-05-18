@@ -45,16 +45,22 @@ public class VideoUtils {
         }
 
         FFmpegBuilder builder = new FFmpegBuilder()
-                .setInput(originStorage + "/" + filename + ".mp4")   // Filename, or a FFmpegProbeResult
-                .overrideOutputFiles(true) // Override the output if it exists
+                .setInput(originStorage + "/" + filename + ".mp4")   // 인코딩할 파일 경로 및 파일명
+                .overrideOutputFiles(true) // 파일이 존재하는 경우 덮어쓰기
 
-                .addOutput(encodedDirectory + "/" + filename + ".m3u8")   // Filename for the destination
-                .addExtraArgs("-start_number", "0", "-hls_time", "1", "-hls_list_size", "0")
+                .addOutput(encodedDirectory + "/" + filename + ".m3u8")   // 저장할 경로와 파일명
+                .setVideoCodec("libx264")     // video codec h.264로 설정(hevc 등 지원하지 않는 codec 존재하여 변경 필요)
+                .setAudioCodec("aac")         // audio codec acc로 설정
                 .setFormat("hls")
+                .addExtraArgs("-start_number", "0")   // .st 파일(스트리밍) 시작 번호
+                .addExtraArgs("-hls_time", "2")       // .st 파일 분리 단위
+                .addExtraArgs("-hls_list_size", "0")
+                .addExtraArgs("-force_key_frames", "expr:gte(t,n_forced*1)") // 시간으로 분리 가능하도록 강제
                 .disableSubtitle()           // No subtiles
-                .setVideoCodec("libx264")     // Video using x264
                 .setStrict(FFmpegBuilder.Strict.EXPERIMENTAL) // Allow FFmpeg to use experimental specs
                 .done();
+
+        builder.setVerbosity(FFmpegBuilder.Verbosity.DEBUG);
 
         FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
         // Run a one-pass encode
