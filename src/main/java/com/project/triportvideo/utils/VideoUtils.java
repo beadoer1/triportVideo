@@ -60,8 +60,6 @@ public class VideoUtils {
                 .setStrict(FFmpegBuilder.Strict.EXPERIMENTAL) // Allow FFmpeg to use experimental specs
                 .done();
 
-        builder.setVerbosity(FFmpegBuilder.Verbosity.DEBUG);
-
         FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
         // Run a one-pass encode
         executor.createJob(builder).run();
