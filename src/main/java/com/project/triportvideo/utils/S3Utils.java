@@ -10,6 +10,9 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
+import com.project.triportvideo.dto.VideoNameDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +21,7 @@ import java.io.*;
 
 @Component
 public class S3Utils {
-
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     private AmazonS3 s3Client;
 
     @Value("${cloud.aws.cloudfront.domain}")
@@ -33,6 +36,8 @@ public class S3Utils {
     private String region;
     @Value("${storage.origin}")
     private String originStorage;
+    @Value("${storage.encoded}")
+    private String encodedStorage;
 
     @PostConstruct
     public void setS3Client() {
@@ -44,18 +49,16 @@ public class S3Utils {
                 .build();
     }
 
-    public String getVideo(String videoUrl) throws IOException {
-        System.out.format("Downloading %s from S3 bucket %s...\n", videoUrl, bucket);
+    public void getVideo(VideoNameDto videoNameDto) throws IOException {
+        logger.info("Downloading {} from S3 bucket {}...\n", videoNameDto.getFullname(), bucket);
         try {
             // Get an object and print its contents.
-            System.out.println("Downloading an object");
-            String fileS3 = videoUrl.replace("https://" + cloudFrontDomainName + "/", "");
+            logger.info("Downloading an object");
+            String fileS3 = "video/" + videoNameDto.getFilename() + "/" + videoNameDto.getFullname();
+//            String fileS3 = videoUrl.replace("https://" + cloudFrontDomainName + "/", "");
             S3Object o = s3Client.getObject(bucket, fileS3);
             S3ObjectInputStream s3is = o.getObjectContent();
-            String[] tmpArray = videoUrl.split("/");
-            String originalFilename = tmpArray[tmpArray.length - 1];
-            String filename = tmpArray[tmpArray.length - 2];
-            FileOutputStream fos = new FileOutputStream(originStorage+"/"+originalFilename);
+            FileOutputStream fos = new FileOutputStream(originStorage+"/"+videoNameDto.getFullname());
             byte[] read_buf = new byte[1024];
             int read_len = 0;
             while ((read_len = s3is.read(read_buf)) > 0) {
@@ -63,24 +66,18 @@ public class S3Utils {
             }
             s3is.close();
             fos.close();
-            return filename;
-        } catch (AmazonServiceException e) {
-            System.err.println(e.getErrorMessage());
+        } catch (AmazonServiceException | IOException e) {
+            logger.error(e.getMessage());
             System.exit(1);
-            return e.getMessage();
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-            return e.getMessage();
         }
     }
 
-    public String uploadFolder(String filepath) throws AmazonServiceException, InterruptedException {
+    public String uploadFolder(VideoNameDto videoNameDto) throws AmazonServiceException, InterruptedException {
         TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(s3Client).build();
-        File file = new File(filepath);
+        File file = new File(encodedStorage + "/" + videoNameDto.getFilename());
         try {
-            transferManager.uploadDirectory(bucket, "video/" + file.getName(), file, false).waitForCompletion();
-            String videoUrl = "https://" + cloudFrontDomainName + "/video/" +file.getName() + "/" + file.getName() + ".m3u8";
+            transferManager.uploadDirectory(bucket, "video/" + videoNameDto.getFilename(), file, false).waitForCompletion();
+            String videoUrl = "https://" + cloudFrontDomainName + "/video/" +videoNameDto.getFilename() + "/" + videoNameDto.getFilename() + ".m3u8";
             System.out.println(videoUrl +" S3 저장 완료");
             return videoUrl;
         } catch (AmazonServiceException e) {

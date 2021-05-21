@@ -1,6 +1,6 @@
 package com.project.triportvideo.controller;
 
-import com.project.triportvideo.innerAPI.VideoUrlDto;
+import com.project.triportvideo.dto.VideoUrlDto;
 import com.project.triportvideo.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;

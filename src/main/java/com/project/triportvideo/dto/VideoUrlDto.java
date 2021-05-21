@@ -1,4 +1,4 @@
-package com.project.triportvideo.innerAPI;
+package com.project.triportvideo.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

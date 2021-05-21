@@ -1,5 +1,6 @@
 package com.project.triportvideo.utils;
 
+import com.project.triportvideo.dto.VideoNameDto;
 import net.bramp.ffmpeg.FFmpeg;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
@@ -37,18 +38,17 @@ public class VideoUtils {
         }
     }
 
-    public String encodingVideo(String filename) {
-        String encodedDirectory = encodedStorage + "/" + filename;
+    public void encodingVideo(VideoNameDto videoNameDto) {
+        String encodedDirectory = encodedStorage + "/" + videoNameDto.getFilename();
         File dir = new File(encodedDirectory);
         if (!dir.exists()) {
             dir.mkdir();
         }
 
         FFmpegBuilder builder = new FFmpegBuilder()
-                .setInput(originStorage + "/" + filename + ".mp4")   // 인코딩할 파일 경로 및 파일명
+                .setInput(originStorage + "/" + videoNameDto.getFullname())   // 인코딩할 파일 경로 및 파일명
                 .overrideOutputFiles(true) // 파일이 존재하는 경우 덮어쓰기
-
-                .addOutput(encodedDirectory + "/" + filename + ".m3u8")   // 저장할 경로와 파일명
+                .addOutput(encodedDirectory + "/" + videoNameDto.getFilename() + ".m3u8")   // 저장할 경로와 파일명
                 .setVideoCodec("libx264")     // video codec h.264로 설정(hevc 등 지원하지 않는 codec 존재하여 변경 필요)
                 .setAudioCodec("aac")         // audio codec acc로 설정
                 .setFormat("hls")
@@ -63,8 +63,6 @@ public class VideoUtils {
         FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
         // Run a one-pass encode
         executor.createJob(builder).run();
-
-        return encodedDirectory;
     }
 
     public void cleanStorage() throws IOException {

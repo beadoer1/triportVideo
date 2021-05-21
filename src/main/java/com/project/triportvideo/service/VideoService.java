@@ -1,6 +1,7 @@
 package com.project.triportvideo.service;
 
-import com.project.triportvideo.innerAPI.VideoUrlDto;
+import com.project.triportvideo.dto.VideoNameDto;
+import com.project.triportvideo.dto.VideoUrlDto;
 import com.project.triportvideo.utils.S3Utils;
 import com.project.triportvideo.utils.VideoUtils;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,8 @@ public class VideoService {
     private final S3Utils s3Utils;
     private final VideoUtils videoUtils;
 
-    @Value("${origin.ipAddress}")
-    private String originServerIpAddress;
+    @Value("${origin.requestURI}")
+    private String originServerRequestURI;
 
 
     private static Queue<VideoUrlDto> imposPlayQueue = new LinkedList<>();
@@ -54,13 +55,14 @@ public class VideoService {
 
     public void encoding(Queue<VideoUrlDto> waitingQueue) throws IOException {
         try {
-            VideoUrlDto originVideoUrlDto = waitingQueue.peek(); // peek() : queue에서 삭제 없이 값만 확인
-            String originVideoUrl =  originVideoUrlDto.getVideoUrl();
-            Long originPostId = originVideoUrlDto.getPostId();
+            VideoUrlDto requestVideoUrlDto = waitingQueue.peek(); // peek() : queue에서 삭제 없이 값만 확인
+            String originVideoUrl =  requestVideoUrlDto.getVideoUrl();
+            Long originPostId = requestVideoUrlDto.getPostId();
+            VideoNameDto videoNameDto = new VideoNameDto(originVideoUrl);
 
-            String filename = s3Utils.getVideo(originVideoUrl);
-            String encodedDirectory = videoUtils.encodingVideo(filename);
-            String videoUrl = s3Utils.uploadFolder(encodedDirectory);
+            s3Utils.getVideo(videoNameDto);
+            videoUtils.encodingVideo(videoNameDto);
+            String videoUrl = s3Utils.uploadFolder(videoNameDto);
 
             updateUrl(new VideoUrlDto(originPostId,videoUrl));
         }catch (Exception e){
@@ -74,7 +76,7 @@ public class VideoService {
 
     public void updateUrl(VideoUrlDto videoUrlDto){
         RestTemplate restTemplate = new RestTemplate();
-        String videoResourceUrl = originServerIpAddress + "/api/all/posts/video";
+        String videoResourceUrl = originServerRequestURI;
 
         HttpEntity<VideoUrlDto> request = new HttpEntity<>(videoUrlDto);
         restTemplate.postForObject(videoResourceUrl, request, Object.class);
