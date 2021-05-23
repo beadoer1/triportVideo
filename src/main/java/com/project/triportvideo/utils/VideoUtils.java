@@ -6,6 +6,8 @@ import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +29,9 @@ public class VideoUtils {
 
     private FFmpeg ffmpeg;
     private FFprobe ffprobe;
+
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
 
     @PostConstruct
     public void init() {
@@ -71,7 +76,7 @@ public class VideoUtils {
 
         FileUtils.cleanDirectory(originDir);
         FileUtils.cleanDirectory(encodedDir);
-        System.out.println("tmp folder 비움 완료");
+        logger.info("tmp folder 비움 완료");
     }
 
 }

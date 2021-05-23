@@ -21,7 +21,6 @@ import java.io.*;
 
 @Component
 public class S3Utils {
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
     private AmazonS3 s3Client;
 
     @Value("${cloud.aws.cloudfront.domain}")
@@ -39,6 +38,9 @@ public class S3Utils {
     @Value("${storage.encoded}")
     private String encodedStorage;
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
+
     @PostConstruct
     public void setS3Client() {
         AWSCredentials credentials = new BasicAWSCredentials(this.accessKey, this.secretKey);
@@ -55,7 +57,6 @@ public class S3Utils {
             // Get an object and print its contents.
             logger.info("Downloading an object");
             String fileS3 = "video/" + videoNameDto.getFilename() + "/" + videoNameDto.getFullname();
-//            String fileS3 = videoUrl.replace("https://" + cloudFrontDomainName + "/", "");
             S3Object o = s3Client.getObject(bucket, fileS3);
             S3ObjectInputStream s3is = o.getObjectContent();
             FileOutputStream fos = new FileOutputStream(originStorage+"/"+videoNameDto.getFullname());
@@ -78,7 +79,7 @@ public class S3Utils {
         try {
             transferManager.uploadDirectory(bucket, "video/" + videoNameDto.getFilename(), file, false).waitForCompletion();
             String videoUrl = "https://" + cloudFrontDomainName + "/video/" +videoNameDto.getFilename() + "/" + videoNameDto.getFilename() + ".m3u8";
-            System.out.println(videoUrl +" S3 저장 완료");
+            logger.info(videoUrl +" S3 저장 완료");
             return videoUrl;
         } catch (AmazonServiceException e) {
             System.err.println(e.getErrorMessage());
@@ -89,5 +90,10 @@ public class S3Utils {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    public boolean checkFileExist(VideoNameDto videoNameDto){
+        boolean isExistObject = s3Client.doesObjectExist(bucket, "video/" +videoNameDto.getFilename() + "/" + videoNameDto.getFilename() + "." + videoNameDto.getType());
+        return isExistObject;
     }
 }

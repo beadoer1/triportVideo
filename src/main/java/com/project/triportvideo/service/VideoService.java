@@ -5,6 +5,8 @@ import com.project.triportvideo.dto.VideoUrlDto;
 import com.project.triportvideo.utils.S3Utils;
 import com.project.triportvideo.utils.VideoUtils;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.scheduling.annotation.Async;
@@ -23,6 +25,9 @@ public class VideoService {
 
     @Value("${origin.requestURI}")
     private String originServerRequestURI;
+
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
 
 
     private static Queue<VideoUrlDto> imposPlayQueue = new LinkedList<>();
@@ -60,13 +65,14 @@ public class VideoService {
             Long originPostId = requestVideoUrlDto.getPostId();
             VideoNameDto videoNameDto = new VideoNameDto(originVideoUrl);
 
-            s3Utils.getVideo(videoNameDto);
-            videoUtils.encodingVideo(videoNameDto);
-            String videoUrl = s3Utils.uploadFolder(videoNameDto);
-
-            updateUrl(new VideoUrlDto(originPostId,videoUrl));
+            if(s3Utils.checkFileExist(videoNameDto)) {
+                s3Utils.getVideo(videoNameDto);
+                videoUtils.encodingVideo(videoNameDto);
+                String videoUrl = s3Utils.uploadFolder(videoNameDto);
+                updateUrl(new VideoUrlDto(originPostId, videoUrl));
+            }
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            logger.error(e.getMessage());
 
         }finally{
             videoUtils.cleanStorage();
